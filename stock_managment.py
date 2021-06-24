@@ -10,6 +10,24 @@ import tkinter.filedialog as filedialogue
 from difflib import SequenceMatcher
 
 
+def is_float(value):
+    """Checks if a value is a float
+
+    Args:
+        value (str): value to check
+
+    Returns:
+        bool: weather or not the value is a float
+        str/float: the value as a float if able
+    """
+    val_is_float = True
+    try:
+        value = float(value)
+    except ValueError:
+        val_is_float = False
+    return val_is_float, value
+
+
 def did_you_mean(stock, item):
     """guesses what the user was trying to input
 
@@ -29,12 +47,13 @@ def did_you_mean(stock, item):
         # the item is to the item in the stock sheet
         probabilities[item_name] = SequenceMatcher(
             None, item_name, item).ratio()
+    # looking for the highest probable match
     for item_name in probabilities:
         if probabilities[item_name] > probabilities[highest_prob]:
             highest_prob = item_name
     match = input(f'Did you mean {highest_prob}; '
                   f'{probabilities[highest_prob] * 100:.2f}% '
-                  'match (Y|N)').lower()
+                  'match (Y|N)').lower().strip()
     if match == 'y':
         return highest_prob
     else:
@@ -46,23 +65,43 @@ def new_item(stock):
 
     Args:
         stock (dict): the current stock sheet
-        item_name (str): [description]
-        item_price (float): [description]
-        item_stock (float): [description]
+    Returns:
+        dict: updated stock sheet
     """
     valid = False
     while not valid:
         valid = True
         item_info = input('what is the name, price, and stock(kg) of '
                           'the item you would like to add to the stock '
-                          'sheet(format N,P,S(kg)): ').lower()
+                          'sheet(format N,P,S(kg)): ').lower().strip()
         if item_info.count(',') != 2:
             print('please format the name, price and stock to the format: '
                   'N,P,S(kg)')
+            valid = False
         else:
             item_name, item_price, item_stock = item_info.split(',')
-    stock[item_name] = {'price': item_price, 'amount': 0.0}
-    stock = update_stock(stock, item_name, item_stock)
+            valid, item_price = is_float(item_price)
+            if not valid:
+                print('price must be a number')
+            valid, item_stock = is_float(item_stock)
+            if not valid:
+                print('stock amount must be a number')
+    item_name = item_name.strip()
+
+    # logic for overiding existing items
+    in_stock = False
+    overide = ''
+    if item_name in stock:
+        in_stock = True
+        overide = input(f'{item_name} is already in the stock sheet would'
+                        ' you like to overide (Y|N)').strip().lower()
+    if overide == 'y' or not in_stock:
+        stock[item_name] = {'price': item_price, 'amount': 0.0}
+        stock = update_stock(stock, item_name, item_stock)
+        if overide == 'y':
+            print(f'{item_name} succesfully overwritten')
+    else:
+        print('To update the amount of stock please use the restock function')
     return stock
 
 
@@ -70,8 +109,9 @@ def sell(stock, TAX=0.15):
     """selling stock
 
     Args:
-        stock (dict): teh stock sheet
-        TAX (float, optional): the amount of tax that will be added to teh price. Defaults to 0.15.
+        stock (dict): the stock sheet
+        TAX (float, optional): the amount of tax that will be added to the
+        price. Defaults to 0.15.
 
     Returns:
         dict: the update stock sheet
@@ -102,7 +142,7 @@ def sell(stock, TAX=0.15):
             print(f'item: {item_to_sell}, amount: {amount_to_sell}kg, '
                   f'price(inc G.S.T): ${price * (1 + TAX)}, total '
                   f'G.S.T.: ${price  * TAX}')
-            confirm = input('would you like to sell (Y|N)').lower()
+            confirm = input('would you like to sell (Y|N)').lower().strip()
             if confirm == 'y':
                 stock = update_stock(stock, item_to_sell, amount_to_sell)
     return stock
@@ -127,7 +167,9 @@ def update_stock(stock, item_to_change, change_amount, max_stock_kg=50.0):
     Returns:
         dict: the updated stock sheet
     """
-    if stock[item_to_change]['amount'] + change_amount > max_stock_kg:
+    if stock[item_to_change]['amount'] + change_amount < 0:
+        print('The stock can not go under 0kg')
+    elif stock[item_to_change]['amount'] + change_amount > max_stock_kg:
         print(f'The stock can not go over {max_stock_kg}kg')
     else:
         updated_stock = stock[item_to_change]['amount'] + change_amount
@@ -158,7 +200,7 @@ def import_stock(stock) -> dict:
     """imports a previosly exported stock sheet
 
     Args:
-        stock (dict): teh current stock sheet for if the import fails
+        stock (dict): the current stock sheet for if the import fails
 
     Returns:
         dict: the new stock sheet
@@ -172,6 +214,29 @@ def import_stock(stock) -> dict:
     return stock
 
 
+def remove_item(stock):
+    """removing an item form the stock
+
+    Args:
+        stock (dict): the current stock sheet
+
+    Returns:
+        dict: the updated stock sheet
+    """
+    item_name = input('what is the name of the item you would '
+                      'like to remove: ')
+    for i in range(0, 2):
+        if item_name not in stock:
+            if i == 0:
+                item_name = did_you_mean(stock, item_name)
+            else:
+                print('item not in stock sheet')
+        else:
+            del stock[item_name]
+            print(f'{item_name} has been deleted')
+    return stock
+
+
 def menu():
     """menu function for the program
     """
@@ -179,7 +244,7 @@ def menu():
              'gold kumara': {'price': 3.5, 'amount': 0},
              'orange kumara': {'price': 3.9, 'amount': 0},
              'purple kumara': {'price': 5.0, 'amount': 0}}
-    POSS_CHOICES = ['a', 's', 'r', 'p', 'i', 'e', 'q']
+    POSS_CHOICES = ['a', 's', 'r', 'p', 'r', 'i', 'e', 'q']
     cont = True
     while cont:
         print("""
@@ -193,6 +258,8 @@ Please enter:
 
 (P)rint out all the items along with their prices and stock
 
+(R)remove an item
+
 (I)mport stock sheet
 
 (E)xport stock sheet
@@ -200,7 +267,6 @@ Please enter:
 (Q)uit
             """)
         choice = input().lower().strip()
-        cont = False
         # interpreting the user's choice
         if choice not in POSS_CHOICES:
             print('that is not a valid choice')
@@ -227,6 +293,8 @@ Please enter:
                 stock = update_stock(stock, item, amount_update)
         elif choice == 'p':
             print_all(stock)
+        elif choice == 'r':
+            stock = remove_item(stock)
         elif choice == 'e':
             export(stock)
         elif choice == 'i':
