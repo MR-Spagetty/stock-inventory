@@ -71,8 +71,8 @@ def new_item(stock):
     valid = False
     while not valid:
         valid = True
-        item_info = input('what is the name, price, and stock(kg) of '
-                          'the item you would like to add to the stock '
+        item_info = input('what is the name, price, and stock(kg) of\n'
+                          'the item you would like to add to the stock\n'
                           'sheet(format N,P,S(kg)): ').lower().strip()
         if item_info.count(',') != 2:
             print('please format the name, price and stock to the format: '
@@ -116,7 +116,7 @@ def sell(stock, TAX=0.15):
     Returns:
         dict: the update stock sheet
     """
-    item_to_sell = input('what is the item you would like to sell')
+    item_to_sell = input('what is the item you would like to sell: ')
     if item_to_sell not in stock:
         item_to_sell = did_you_mean(stock, item_to_sell)
 
@@ -191,12 +191,12 @@ def export(stock):
     )
     if not path.endswith('.json'):
         path = f'{path}.json'
-
     with open(path, 'w') as file:
         json.dump(stock, file, indent=4)
+    print(f'stock sheet exported to {path}')
 
 
-def import_stock(stock) -> dict:
+def import_stock(stock):
     """imports a previosly exported stock sheet
 
     Args:
@@ -211,6 +211,10 @@ def import_stock(stock) -> dict:
     if os.path.isfile(path):
         with open(path, 'r') as file:
             stock = json.load(file)
+        print('file succesfully imported')
+    # occurs when user cancels the file dialogue
+    else:
+        print('import canceled')
     return stock
 
 
@@ -224,7 +228,7 @@ def remove_item(stock):
         dict: the updated stock sheet
     """
     item_name = input('what is the name of the item you would '
-                      'like to remove: ')
+                      'like to remove: ').lower().strip()
     for i in range(0, 2):
         if item_name not in stock:
             if i == 0:
@@ -244,7 +248,7 @@ def menu():
              'gold kumara': {'price': 3.5, 'amount': 0},
              'orange kumara': {'price': 3.9, 'amount': 0},
              'purple kumara': {'price': 5.0, 'amount': 0}}
-    POSS_CHOICES = ['a', 's', 'r', 'p', 'r', 'i', 'e', 'q']
+    POSS_CHOICES = ['a', 's', 'r', 'p', 'u', 'i', 'e', 'q', 'r']
     cont = True
     while cont:
         print("""
@@ -254,7 +258,7 @@ Please enter:
 
 (S)ell an item (include 15% GST)
 
-(R)estock an item
+(U)update the stock an item
 
 (P)rint out all the items along with their prices and stock
 
@@ -274,18 +278,19 @@ Please enter:
             stock = new_item(stock)
         elif choice == 's':
             stock = sell(stock)
-        elif choice == 'r':
+        elif choice == 'u':
             # restocking the stock
-            item = input('what would you like to update the stock of')
+            item = input('what would you like to update the stock of: ')
             item = did_you_mean(stock, item)
             valid = False
             amount_update = 0
             while not valid:
                 valid = True
+                # checking that the input is a float
                 try:
                     amount_update = float(input('What is the amount you '
                                                 'would like to change the '
-                                                f'stock level of {item} by'))
+                                                f'stock level of {item} by: '))
                 except ValueError:
                     valid = False
                     print('that is not a valid number')
