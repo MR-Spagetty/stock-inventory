@@ -69,6 +69,7 @@ def new_item(stock):
         dict: updated stock sheet
     """
     valid = False
+    # loops until the input is valid
     while not valid:
         valid = True
         item_info = input('what is the name, price, and stock(kg) of\n'
@@ -79,27 +80,27 @@ def new_item(stock):
                   'N,P,S(kg)')
             valid = False
         else:
-            item_name, item_price, item_stock = item_info.split(',')
-            valid, item_price = is_float(item_price)
+            item_info_list = item_info.split(',')
+            valid, item_info_list[1] = is_float(item_info_list[1])
             if not valid:
                 print('price must be a number')
-            valid, item_stock = is_float(item_stock)
+            valid, item_info_list[-1] = is_float(item_info_list[-1])
             if not valid:
                 print('stock amount must be a number')
-    item_name = item_name.strip()
+    item_info_list[0] = item_info_list[0].strip()
 
     # logic for overiding existing items
     in_stock = False
     overide = ''
-    if item_name in stock:
+    if item_info_list[0] in stock:
         in_stock = True
-        overide = input(f'{item_name} is already in the stock sheet would'
-                        ' you like to overide (Y|N)').strip().lower()
+        overide = input(f'{item_info_list[0]} is already in the stock sheet '
+                        'would you like to overide (Y|N)').strip().lower()
     if overide == 'y' or not in_stock:
-        stock[item_name] = {'price': item_price, 'amount': 0.0}
-        stock = update_stock(stock, item_name, item_stock)
+        stock[item_info_list[0]] = {'price': item_info_list[1], 'amount': 0.0}
+        stock = update_stock(stock, item_info_list[0], item_info_list[-1])
         if overide == 'y':
-            print(f'{item_name} succesfully overwritten')
+            print(f'{item_info_list[0]} succesfully overwritten')
     else:
         print('To update the amount of stock please use the restock function')
     return stock
@@ -154,14 +155,14 @@ def print_all(stock):
               f'stock:{stock[item]["amount"]}')
 
 
-def update_stock(stock, item_to_change, change_amount, max_stock_kg=50.0):
+def update_stock(stock, item_to_change, change_amount, MAX_STOCK_KG=50.0):
     """update the amount of stock of an item already on the stock sheet
 
     Args:
         stock (dict): current stock sheet
         item_to_change (str): the item to change the stock level of
         change_amount ([type]): the amount to change the stock level by
-        max_stock_kg (float, optional): the maximum amount of the iteem that
+        MAX_STOCK_KG (float, optional): the maximum amount of the iteem that
         can be stored. Defaults to 50.
 
     Returns:
@@ -169,8 +170,8 @@ def update_stock(stock, item_to_change, change_amount, max_stock_kg=50.0):
     """
     if stock[item_to_change]['amount'] + change_amount < 0:
         print('The stock can not go under 0kg')
-    elif stock[item_to_change]['amount'] + change_amount > max_stock_kg:
-        print(f'The stock can not go over {max_stock_kg}kg')
+    elif stock[item_to_change]['amount'] + change_amount > MAX_STOCK_KG:
+        print(f'The stock can not go over {MAX_STOCK_KG}kg')
     else:
         updated_stock = stock[item_to_change]['amount'] + change_amount
         print(f'the stock of {item_to_change} has been updated from '
@@ -194,6 +195,8 @@ def export(stock):
     with open(path, 'w') as file:
         json.dump(stock, file, indent=4)
     print(f'stock sheet exported to {path}')
+    # Nothing i can do about it saving a file when the user preses cancel
+    # apparently
 
 
 def import_stock(stock):
@@ -250,6 +253,7 @@ def menu():
              'purple kumara': {'price': 5.0, 'amount': 0}}
     POSS_CHOICES = ['a', 's', 'r', 'p', 'u', 'i', 'e', 'q', 'r']
     cont = True
+    # loops the menu until the user quits the program
     while cont:
         print("""
 Please enter:
@@ -309,4 +313,7 @@ Please enter:
             print('have a nice day')
 
 if __name__ == "__main__":
-    menu()
+    try:
+        menu()
+    except KeyboardInterrupt:
+        print('what did you do that for?\nAnyways have a nice day')
